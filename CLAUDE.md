@@ -1,106 +1,97 @@
 # Skills
 
-Central skill repository for the 1000Problems portfolio. Every Cowork and Claude Code skill lives here as a self-contained folder, versioned in git, and installable into any project.
+Central repository of AI agent skills for the 1000Problems portfolio. Not a web app — this is a Git repo that stores skill files organized by runtime (Cowork vs Code).
 
 ## Tech Stack
 
 - **Format**: Markdown (SKILL.md files with YAML frontmatter)
 - **Hosting**: GitHub (1000Problems/skills)
-- **Runtime**: None — skills are static instruction files consumed by Cowork and Claude Code
-- **Language**: English prose + embedded code examples
+- **Language**: None — skills are instruction documents, not executable code
+- **Database**: None
 
 ## Project Structure
 
 ```
 Skills/
-├── CLAUDE.md                     -- This file
-├── README.md                     -- Repo overview
-├── .gitignore
-├── cowork/                       -- Skills for Cowork (desktop agent)
-│   ├── 1000p-new-project/
+├── CLAUDE.md
+├── README.md
+├── cowork/                    -- Skills that run in Cowork (desktop app)
+│   ├── 1000p-new-project/     -- Scaffold a new project end-to-end
 │   │   └── SKILL.md
-│   ├── 1000p-deploy-v2/
+│   ├── 1000p-deploy-v2/       -- Deploy to Vercel + homepage
 │   │   ├── SKILL.md
 │   │   └── references/
 │   │       └── infrastructure.md
-│   ├── daily-report/
+│   ├── 1000p-deploy/          -- Deploy to Azure (legacy)
+│   │   ├── SKILL.md
+│   │   └── references/
+│   │       └── infrastructure.md
+│   └── daily-report/          -- Portfolio-wide daily report
+│       └── SKILL.md
+├── code/                      -- Skills that run in Claude Code (CLI)
+│   ├── vybego/                -- Pull tasks from VybePM and execute
 │   │   └── SKILL.md
-│   └── ...
-├── code/                         -- Skills for Claude Code (terminal agent)
-│   ├── vybego/
-│   │   └── SKILL.md
-│   └── ...
-└── shared/                       -- Skills usable by both
-    └── ...
+│   └── gitmcp-dev/            -- GitMCP development workflow
+│       └── SKILL.md
+└── shared/                    -- Reference files used by multiple skills
+    └── infrastructure.md      -- Accounts, tokens, naming conventions
 ```
+
+## Cowork vs Code: When to Use Which
+
+**Cowork skills** have access to:
+- GitMCP tools (fs_write, fs_read, fs_list, fs_stat) for host filesystem
+- Git MCP tools (git_init, git_add, git_commit, git_push, etc.)
+- Chrome MCP for browser automation
+- Computer use for native app control
+- Sandboxed Linux shell (NOT the host shell)
+
+**Code skills** have access to:
+- Full host filesystem (direct read/write)
+- Host shell (bash, npm, npx, git, etc.)
+- No browser or GUI access
+- No MCP tools (unless configured in project)
+
+**Rule of thumb:**
+- If the skill writes specs, reviews code, orchestrates deployments, or talks to web APIs → Cowork
+- If the skill writes application code, runs tests, builds, or needs native toolchains → Code
 
 ## Skill File Format
 
-Every skill is a folder with at minimum a `SKILL.md`. The file uses YAML frontmatter:
+Every skill is a folder containing at minimum a `SKILL.md` with this structure:
 
 ```markdown
 ---
 name: skill-name
-description: "One-line description used for trigger matching. Include trigger phrases."
+description: "Trigger description — when should this skill activate?"
 ---
 
 # Skill Title
 
-Instructions for the agent...
+{What this skill does and when to use it}
+
+## Phase 1: ...
+## Phase 2: ...
+## Phase N: ...
+
+## Verification
 ```
 
-### Frontmatter Fields
+Optional: a `references/` subdirectory for supporting files (infrastructure docs, templates, examples).
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | Lowercase hyphenated identifier |
-| `description` | Yes | Trigger description — include phrases that should activate this skill |
+## Installing Skills
 
-### Optional: references/ directory
-
-For skills that need supporting data (infrastructure credentials, templates, examples), add a `references/` subdirectory:
-
-```
-my-skill/
-├── SKILL.md
-└── references/
-    ├── infrastructure.md
-    ├── template.html
-    └── examples.json
-```
-
-The SKILL.md should reference these files with relative paths.
-
-## Conventions
-
-1. **One skill per folder** — never put multiple SKILL.md files in the same directory
-2. **Skill names are kebab-case** — `1000p-new-project`, not `1000pNewProject`
-3. **Descriptions include trigger phrases** — the description field is what Cowork uses to decide when to activate a skill, so pack it with relevant phrases
-4. **No secrets in SKILL.md** — credentials go in `references/infrastructure.md` which is gitignored if sensitive, or reference env vars
-5. **Skills are self-contained** — a skill should work without reading other skills (cross-reference is OK, dependency is not)
-6. **Cold start test** — if an agent reads this skill for the first time with no prior context, can it execute the full workflow? If not, add more detail.
-
-## Installation
-
-Skills are installed by copying the folder into a project's `.claude/skills/` directory:
+Skills in this repo are the source of truth. To install into a project:
 
 ```bash
-# Install a Cowork skill
+# Cowork skill → project's .claude/skills/
 cp -r ~/1000Problems/Skills/cowork/1000p-new-project ~/1000Problems/ytcombinator/.claude/skills/
 
-# Install a Code skill
+# Code skill → project's .claude/skills/
 cp -r ~/1000Problems/Skills/code/vybego ~/1000Problems/Vybe/.claude/skills/
 ```
 
-After copying, the skill appears in the agent's available skills list on next session start.
-
-## Adding a New Skill
-
-1. Create a folder under the appropriate category (`cowork/`, `code/`, or `shared/`)
-2. Write `SKILL.md` with proper YAML frontmatter
-3. Add `references/` directory if the skill needs supporting files
-4. Test the skill by installing it in a project and running it
-5. Commit and push to this repo
+After copying, restart the Cowork session or Code instance to pick up the new skill.
 
 ## VybePM Integration
 
@@ -110,7 +101,8 @@ After copying, the skill appears in the agent's available skills list on next se
 
 ## Critical Notes
 
-1. **This is not a code project** — there is no build step, no dependencies, no runtime. Skills are plain text consumed by AI agents.
-2. **The description field matters more than the content** — Cowork decides whether to trigger a skill based on the YAML description, not the body. Write descriptions like search keywords.
-3. **Don't gitignore references/ globally** — most reference files are fine to commit. Only gitignore specific files that contain secrets (and note which ones in the SKILL.md).
-4. **Skills evolve** — when a skill's workflow changes, update the SKILL.md in this repo AND in every project that has it installed. The installed copies are independent — there's no auto-sync.
+1. **Skills are NOT code.** They're structured instructions. Don't add package.json, node_modules, or build steps.
+2. **Don't duplicate infrastructure.md.** Keep one copy in `shared/` and reference it from skill files.
+3. **Sensitive data** (tokens, PATs) lives in `shared/infrastructure.md` — this file should NOT be committed to a public repo. Add it to .gitignore or keep the repo private.
+4. **Skill descriptions matter.** The YAML `description` field is what triggers automatic skill selection. Make it specific and include example phrases.
+5. **Test before committing.** Run the skill manually in Cowork/Code to verify it works before pushing.
