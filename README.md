@@ -16,6 +16,8 @@ Skills/
 ├── code/                                -- Claude Code skills
 │   ├── vybeall/                         -- Portfolio-wide task scanner
 │   │   └── SKILL.md
+│   ├── vybeforever/                     -- Continuous task executor (loops every 4h)
+│   │   └── SKILL.md
 │   └── vybego.md                        -- Autonomous task executor
 └── shared/                              -- Reference files used by multiple skills
     └── infrastructure.md                -- Accounts, tokens, naming conventions
@@ -40,6 +42,7 @@ Skills that run in Claude Code (CLI). Executed autonomously or via VybePM task p
 |-------|-------------|
 | `vybego` | Pull tasks from VybePM API, execute them, report completion |
 | `vybeall` | Scan all projects for pending tasks, execute across the portfolio |
+| `vybeforever` | Like vybeall but runs continuously — executes a full portfolio sweep then sleeps 4 hours, forever |
 
 ## Scheduled Tasks
 
