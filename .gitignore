@@ -4,3 +4,4 @@ Thumbs.db
 .idea/
 .env
 .env.local
+shared/infrastructure.md
