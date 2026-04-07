@@ -39,10 +39,11 @@ These are the active projects and their directories. The executor visits each in
 ┌─────────────────────────────────────────────┐
 │  FOREVER LOOP                               │
 │                                             │
+│  0. Reindex LightRAG + preflight checks     │
 │  1. Run the full VybeAll cycle              │
 │  2. Print cycle summary                     │
 │  3. Sleep 4 hours (14400 seconds)           │
-│  4. Go to 1                                 │
+│  4. Go to 0                                 │
 │                                             │
 │  Exits only when manually stopped (Ctrl+C)  │
 └─────────────────────────────────────────────┘
@@ -62,10 +63,26 @@ At the start of each cycle, print:
 ╚══════════════════════════════════════════════╝
 ```
 
-### Step 0: Preflight
+### Step 0: LightRAG Reindex + Preflight
+
+**0a. Reindex LightRAG (every cycle)**
+
+Run the reindex script to ensure the knowledge graph has the latest project docs:
+
+```bash
+bash ~/1000Problems/reindex-lightrag.sh
+```
+
+This indexes all CLAUDE.md, SPEC.md, DESIGN.md, and other architectural docs across the portfolio into the LightRAG knowledge graph (localhost:9621). If LightRAG is down (script exits non-zero), log a warning but continue — you'll fall back to reading CLAUDE.md files directly for each project.
+
+**0b. Preflight checks**
 
 1. Confirm working directory is `~/1000Problems` (or cd to it)
-2. Verify `VYBEPM_API_KEY` is available
+2. Load credentials:
+   ```bash
+   source ~/1000Problems/secrets.env
+   ```
+   This gives you: VYBEPM_API_KEY, GITHUB_PAT, DATABASE_URL, VERCEL_TOKEN
 3. Fetch the full project list from VybePM API to confirm connectivity:
    ```bash
    curl -s "https://vybepm-v2.vercel.app/api/projects" \
@@ -91,9 +108,22 @@ Print a project header:
 └──────────────────────────────────────┘
 ```
 
-#### 1b. Read project context
+#### 1b. Read project context + query LightRAG
 
-Read `CLAUDE.md` in the project directory. This is the project's instruction manual — it tells you the tech stack, file structure, conventions, and constraints.
+**First, query LightRAG** for this project's architectural context and any cross-project constraints:
+
+```bash
+curl -s -X POST http://localhost:9621/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "what are the protected areas, constraints, and current state of '"${PROJECT_SLUG}"'", "mode": "hybrid"}'
+```
+
+Use the LightRAG response to understand:
+- What files and components are protected (Do Not Change)
+- What patterns and conventions the project follows
+- What cross-project dependencies exist (shared DB, APIs, etc.)
+
+**Then read `CLAUDE.md`** in the project directory. This is the authoritative instruction manual — it defines the tech stack, file structure, conventions, and constraints. The LightRAG query gives you cross-project context; CLAUDE.md gives you project-specific rules.
 
 If no CLAUDE.md exists, print a warning and skip to the next project:
 ```
@@ -126,7 +156,24 @@ curl -s -X PATCH "https://vybepm-v2.vercel.app/api/executor/tasks/${TASK_ID}/pic
 
 If 409 (already picked up): go back to 1c for the next available task.
 
-#### 1e. Execute the task
+#### 1e. Query LightRAG for task-specific context
+
+Before executing, query LightRAG with the specific task details:
+
+```bash
+curl -s -X POST http://localhost:9621/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "context for implementing: '"${TASK_TITLE}"' in '"${PROJECT_SLUG}"'. What patterns should I follow? What should I not change?", "mode": "hybrid"}'
+```
+
+This gives you awareness of:
+- Similar patterns implemented in other projects
+- Related state machines or API contracts
+- Files that other projects depend on (don't break them)
+
+If LightRAG is down, skip this step and rely on CLAUDE.md alone.
+
+#### 1f. Execute the task
 
 Print the task:
 ```
@@ -136,15 +183,24 @@ Print the task:
   ────────────────────────
 ```
 
-Execute the task using the project's CLAUDE.md as context. This is standard Code work:
+Execute the task using both the LightRAG context and the project's CLAUDE.md as guardrails. This is standard Code work:
 - Read relevant source files
 - Write/modify code
 - Run tests if the project has them
 - Fix any errors that come up
 
+**Critical: respect the CLAUDE.md Protected Areas and any Do Not Change section in the TASK spec.** If you discover something outside scope that needs fixing, create a VybePM task for it instead:
+
+```bash
+curl -s -X POST "https://vybepm-v2.vercel.app/api/projects/${PROJECT_SLUG}/tasks" \
+  -H "X-API-Key: ${VYBEPM_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Found during task #'${TASK_ID}': ...", "task_type": "dev", "priority": 3, "assignee": "claude-code"}'
+```
+
 Stay within the project directory. Do not touch files in other projects.
 
-#### 1f. Report completion
+#### 1g. Report completion
 
 ```bash
 curl -s -X PATCH "https://vybepm-v2.vercel.app/api/executor/tasks/${TASK_ID}/complete" \
@@ -160,7 +216,7 @@ Notes should include: files created/modified, tests run, issues encountered.
   ✓ Task #{id} completed
 ```
 
-#### 1g. Check for more tasks in this project
+#### 1h. Check for more tasks in this project
 
 Loop back to 1c. Keep executing tasks for this project until the API returns 204 (no more pending tasks). Then move to the next project.
 
@@ -177,6 +233,7 @@ After all projects have been processed for this cycle:
 ║  Tasks failed:     {count}                   ║
 ║  Skipped (no CLAUDE.md): {count}             ║
 ║  Cycle duration: {duration}                  ║
+║  LightRAG: {up/down}                         ║
 ║                                              ║
 ║  Sleeping until: {time + 4h}                 ║
 ╚══════════════════════════════════════════════╝
@@ -214,6 +271,11 @@ If a task fails during execution:
 - If VybePM becomes unreachable mid-cycle: retry once, then skip that project and continue
 - If the API key is missing: abort immediately (this is a config problem, not transient)
 
+### LightRAG errors
+- If LightRAG is down during reindex: log a warning, continue without graph context
+- If LightRAG is down during per-project queries: skip the query, rely on CLAUDE.md alone
+- Do NOT abort any cycle because LightRAG is unavailable — it's an enhancement, not a requirement
+
 ### Project errors
 - If a project directory doesn't exist: log a warning and skip
 - If CLAUDE.md is missing: log a warning and skip
@@ -224,7 +286,7 @@ The forever loop must NEVER exit on its own except for:
 - Missing API key (unrecoverable config issue)
 - Manual interruption (Ctrl+C)
 
-All other errors (network, API, task failures, project errors) are logged and the loop continues. The next cycle is a fresh start.
+All other errors (network, API, LightRAG, task failures, project errors) are logged and the loop continues. The next cycle is a fresh start.
 
 ## Fallback: Local TASK files
 
@@ -240,6 +302,7 @@ If the VybePM Executor API is not yet deployed (returns 404), fall back to readi
 - Do NOT install dependencies globally — use project-local installs only
 - Do NOT delete any files unless the task explicitly requires it
 - Do NOT exit the forever loop unless the API key is missing or the user interrupts
+- Do NOT modify Protected Areas listed in a project's CLAUDE.md — create a VybePM task instead
 
 ## Project-Specific Notes
 
