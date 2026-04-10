@@ -22,7 +22,7 @@ Every project falls into one of these tiers. The tier determines what evidence y
 
 | Tier | Projects | Evidence Required |
 |------|----------|-------------------|
-| **A — Buildable** | ytcombinator, VybePM-v2, GitMCP, 1000Problems | `npm run build` output + `git diff --name-only` + acceptance criteria evidence |
+| **A — Buildable** | ytcombinator, VybePM-v2, GitMCP, 1000Problems, popilearn | `npm run build` output + `git diff --name-only` + acceptance criteria evidence |
 | **B — Not buildable from CLI** | Vybe, AnimationStudio, KitchenInventory, RubberJoints-iOS | `git diff --name-only` + file:line references per acceptance criterion |
 | **C — Non-code** | Animation, Skills | `git diff --name-only` + content review of modified files |
 
@@ -39,6 +39,7 @@ These are the active projects and their directories. The executor visits each in
 | KitchenInventory | ~/1000Problems/KitchenInventory | iOS Swift app | B |
 | RubberJoints-iOS | ~/1000Problems/RubberJoints-iOS | iOS Swift app | B |
 | 1000Problems | ~/1000Problems/1000Problems | Next.js homepage | A |
+| PopiLearn | ~/1000Problems/popilearn | Next.js web app | A |
 | Animation | ~/1000Problems/Animation | Creative assets | C |
 | AnimationStudio | ~/1000Problems/AnimationStudio | macOS Swift app | B |
 | Skills | ~/1000Problems/Skills | Skill repository | C |
