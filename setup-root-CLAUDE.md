@@ -38,6 +38,25 @@ The Plan agent will return a step-by-step implementation plan with file-level de
 
 **Why:** Unplanned edits are the #1 source of scope creep and accidental breakage in this codebase. A 30-second plan prevents hours of rollback.
 
+## Frontend Design (Mandatory for Web UI Work)
+
+**Before building any web UI** — pages, components, dashboards, landing pages, or any HTML/CSS/React work — read the frontend design skill:
+
+```bash
+cat ~/1000Problems/Skills/shared/frontend-design/SKILL.md
+```
+
+(If `shared/` doesn't exist yet, check `~/1000Problems/Skills/shared-frontend-design-SKILL.md` instead.)
+
+This skill is the design standard for all 1000Problems web properties. Key rules:
+- Commit to a **bold aesthetic direction** before writing code — no generic AI slop
+- **No default fonts** (Inter, Roboto, Arial, system fonts are banned)
+- **No cliché color schemes** (especially purple gradients on white)
+- Every UI must feel intentionally designed for its context
+- Typography, color, motion, spatial composition, and texture all matter
+
+This applies to every web-facing project: ytcombinator, VybePM-v2, 1000Problems homepage, and any new web app.
+
 ## Git Rules
 
 Do NOT commit or push from any project unless the TASK spec or skill explicitly instructs you to. Angel reviews and handles git himself for most projects.
