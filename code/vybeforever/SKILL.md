@@ -16,22 +16,32 @@ User runs `/vybeforever` from the `1000Problems` root directory (`~/1000Problems
 Requires `VYBEPM_API_KEY` in environment or `.env.local` at the root level.
 VybePM base URL: `https://vybepm-v2.vercel.app`
 
+## Verification Tiers
+
+Every project falls into one of these tiers. The tier determines what evidence you collect at completion.
+
+| Tier | Projects | Evidence Required |
+|------|----------|-------------------|
+| **A — Buildable** | ytcombinator, VybePM-v2, GitMCP, 1000Problems | `npm run build` output + `git diff --name-only` + acceptance criteria evidence |
+| **B — Not buildable from CLI** | Vybe, AnimationStudio, KitchenInventory, RubberJoints-iOS | `git diff --name-only` + file:line references per acceptance criterion |
+| **C — Non-code** | Animation, Skills | `git diff --name-only` + content review of modified files |
+
 ## Project Registry
 
 These are the active projects and their directories. The executor visits each in order.
 
-| Project Slug | Directory | Type |
-|-------------|-----------|------|
-| ytcombinator | ~/1000Problems/ytcombinator | Next.js web app |
-| VybePM | ~/1000Problems/VybePM-v2 | Next.js web app |
-| Vybe | ~/1000Problems/Vybe | iOS Swift app |
-| GitMCP | ~/1000Problems/GitMCP | Node.js MCP server |
-| KitchenInventory | ~/1000Problems/KitchenInventory | iOS Swift app |
-| RubberJoints-iOS | ~/1000Problems/RubberJoints-iOS | iOS Swift app |
-| 1000Problems | ~/1000Problems/1000Problems | Next.js homepage |
-| Animation | ~/1000Problems/Animation | Creative assets |
-| AnimationStudio | ~/1000Problems/AnimationStudio | macOS Swift app |
-| Skills | ~/1000Problems/Skills | Skill repository |
+| Project Slug | Directory | Type | Tier |
+|-------------|-----------|------|------|
+| ytcombinator | ~/1000Problems/ytcombinator | Next.js web app | A |
+| VybePM | ~/1000Problems/VybePM-v2 | Next.js web app | A |
+| Vybe | ~/1000Problems/Vybe | iOS Swift app | B |
+| GitMCP | ~/1000Problems/GitMCP | Node.js MCP server | A |
+| KitchenInventory | ~/1000Problems/KitchenInventory | iOS Swift app | B |
+| RubberJoints-iOS | ~/1000Problems/RubberJoints-iOS | iOS Swift app | B |
+| 1000Problems | ~/1000Problems/1000Problems | Next.js homepage | A |
+| Animation | ~/1000Problems/Animation | Creative assets | C |
+| AnimationStudio | ~/1000Problems/AnimationStudio | macOS Swift app | B |
+| Skills | ~/1000Problems/Skills | Skill repository | C |
 
 ## Loop Structure
 
@@ -104,7 +114,7 @@ Print a project header:
 ```
 ┌──────────────────────────────────────┐
 │ [{index}/{total}] {ProjectSlug}      │
-│ {directory} — {type}                 │
+│ {directory} — {type} — Tier {A/B/C}  │
 └──────────────────────────────────────┘
 ```
 
@@ -200,23 +210,69 @@ curl -s -X POST "https://vybepm-v2.vercel.app/api/projects/${PROJECT_SLUG}/tasks
 
 Stay within the project directory. Do not touch files in other projects.
 
-#### 1g. Report completion
+#### 1g. Gather Completion Evidence
+
+**Before reporting completion, you MUST gather structured evidence.** The vybepm-reviewer will parse this format. Tasks with incomplete evidence get rejected back to `in_progress`.
+
+**Step 1: Run `git diff --name-only`** and capture the output. Verify ONLY files listed in the TASK spec (or relevant to the task description) were modified.
+
+**Step 2: Run the build (Tier A projects only):**
+```bash
+npm run build 2>&1 | tail -20
+```
+Capture the last 20 lines. If the build fails, fix it before proceeding.
+
+**Step 3: Check each acceptance criterion** from the TASK spec (or infer criteria from the task title/description). For each, record specific evidence: terminal output for Tier A, file:line references for Tier B, content verification for Tier C.
+
+**Step 4: Self-review.** Ask yourself:
+- Did I modify files not listed in the TASK? If yes, why?
+- Did I refactor or clean up adjacent code? If yes, that's scope creep.
+- Did I add features not in the spec? If yes, that's YAGNI.
+
+**Step 5: Compose the completion notes** using this exact format:
+
+```
+## Completion Evidence
+
+### Scope Check
+Files modified:
+{paste git diff --name-only output}
+Files outside TASK scope: NONE
+
+### Build
+{For Tier A: paste last 10 lines of npm run build}
+{For Tier B: N/A — iOS/macOS project}
+{For Tier C: N/A — non-code project}
+
+### Acceptance Criteria
+1. [x] {criterion} — EVIDENCE: {file:line or terminal output}
+2. [x] {criterion} — EVIDENCE: {file:line or terminal output}
+
+### Self-Review
+- Modified files not in TASK: No
+- Refactored adjacent code: No
+- Added features not in spec: No
+```
+
+#### 1h. Report completion
+
+Post the structured evidence to VybePM:
 
 ```bash
 curl -s -X PATCH "https://vybepm-v2.vercel.app/api/executor/tasks/${TASK_ID}/complete" \
   -H "X-API-Key: ${VYBEPM_API_KEY}" \
   -H "X-Executor: claude-code" \
   -H "Content-Type: application/json" \
-  -d '{"notes": "Summary of changes..."}'
+  -d '{"notes": "<the structured completion evidence from step 1g>"}'
 ```
 
-Notes should include: files created/modified, tests run, issues encountered.
+**"Claiming work is complete without verification is dishonesty, not efficiency."**
 
 ```
-  ✓ Task #{id} completed
+  ✓ Task #{id} completed (evidence posted)
 ```
 
-#### 1h. Check for more tasks in this project
+#### 1i. Check for more tasks in this project
 
 Loop back to 1c. Keep executing tasks for this project until the API returns 204 (no more pending tasks). Then move to the next project.
 
@@ -256,6 +312,20 @@ sleep 14400
 Then increment the cycle counter and go back to Cycle Start.
 
 If there were zero tasks across all projects, still sleep and retry — new tasks may appear in VybePM between cycles.
+
+## Rationalization Prevention
+
+When executing tasks, watch for these traps:
+
+| If you're thinking... | Stop. The reality is: |
+|-----------------------|-----------------------|
+| "This file needs fixing too" | That's scope creep. Create a VybePM task, don't fix it inline. |
+| "I'll refactor this while I'm here" | Unauthorized cleanup. The TASK spec didn't ask for it. |
+| "The build passes so it's done" | Build passing ≠ task complete. Fill in the Completion Evidence. |
+| "This is a trivial change" | Trivial changes break things. Follow the full evidence flow. |
+| "I'll add error handling to be safe" | Only add what the spec asks for. YAGNI. |
+| "The adjacent component should match" | Stay in scope. If it should match, that's a new TASK. |
+| "I can skip evidence for this one" | No. Every task gets structured notes. The reviewer will reject you. |
 
 ## Error Handling
 
@@ -303,6 +373,7 @@ If the VybePM Executor API is not yet deployed (returns 404), fall back to readi
 - Do NOT delete any files unless the task explicitly requires it
 - Do NOT exit the forever loop unless the API key is missing or the user interrupts
 - Do NOT modify Protected Areas listed in a project's CLAUDE.md — create a VybePM task instead
+- Do NOT post freeform notes — use the structured Completion Evidence format or the reviewer will reject the task
 
 ## Project-Specific Notes
 

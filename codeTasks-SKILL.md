@@ -41,7 +41,25 @@ Use the results to:
 - Spot potential conflicts with other projects
 - Reference related implementations Code can use as examples
 
-## Step 3: Write the TASK File
+## Step 3: Determine Verification Tier
+
+Before writing the TASK, classify the project's verification capability:
+
+**Tier A — Buildable from CLI:**
+Next.js projects (ytcombinator, VybePM-v2, 1000Problems), Node.js projects (GitMCP).
+Verification: `npm run build` output + `git diff --name-only` + acceptance criteria checks.
+
+**Tier B — Not buildable from CLI:**
+iOS/macOS projects (Vybe, AnimationStudio, KitchenInventory, RubberJoints-iOS).
+Verification: `git diff --name-only` + file:line references per acceptance criterion + structured self-assessment. No build output required.
+
+**Tier C — Non-code:**
+Creative/config projects (Animation, Skills).
+Verification: `git diff --name-only` + content review of modified files.
+
+The tier determines what goes in the Verification and Completion Evidence sections of the TASK.
+
+## Step 4: Write the TASK File
 
 Create the file at: `~/1000Problems/{project}/TASK-{slug}.md`
 
@@ -89,31 +107,85 @@ it, Code will "helpfully" refactor adjacent code.}
 
 ## Acceptance Criteria
 
-{How does Angel (or the reviewer) verify this is done correctly?}
+{How does the reviewer verify this is done correctly? Every criterion must
+be binary — it either passes or it doesn't.}
 
-- [ ] `npm run build` passes with zero errors
+- [ ] {For Tier A: `npm run build` passes with zero errors}
 - [ ] {Visual or functional check}
 - [ ] {Specific behavior that must work}
-- [ ] `git diff` shows changes ONLY in files listed under Implementation Notes
+- [ ] `git diff --name-only` shows changes ONLY in files listed under Implementation Notes
 
 ## Verification
 
-{What Code should do before considering the task complete:}
+{What Code must do before setting the task to `review` in VybePM.}
 
-1. Run the build/compile step for the project
-2. Check `git diff` — no files outside scope should be modified
-3. Test the specific behavior described in acceptance criteria
-4. If the project has tests, run them and confirm they pass
+### For Tier A (buildable) projects:
+1. Run the build: `npm run build` — capture output
+2. Run `git diff --name-only` — verify only in-scope files changed
+3. Test each acceptance criterion and record the evidence
+4. If the project has tests, run them
+
+### For Tier B (iOS/macOS) projects:
+1. Run `git diff --name-only` — verify only in-scope files changed
+2. For each acceptance criterion, provide file:line references showing where the requirement is met
+3. Review your own changes for obvious issues (force unwraps, hardcoded values, missing error handling)
+
+### For Tier C (non-code) projects:
+1. Run `git diff --name-only` — verify only in-scope files changed
+2. Review content of each modified file for completeness
+
+## Completion Evidence (REQUIRED)
+
+**Code must paste the following into VybePM task notes before setting status to `review`.**
+The vybepm-reviewer will parse this format. Incomplete evidence = task rejected back to `in_progress`.
+
+~~~
+## Completion Evidence
+
+### Scope Check
+Files modified: (paste git diff --name-only output)
+Files outside TASK scope: NONE | (list each with justification)
+
+### Build (Tier A only)
+(paste last 10 lines of npm run build output)
+(or "N/A — iOS/macOS project" for Tier B)
+(or "N/A — non-code project" for Tier C)
+
+### Acceptance Criteria
+1. [x] criterion text — EVIDENCE: (file:line, terminal output, or screenshot description)
+2. [x] criterion text — EVIDENCE: (file:line, terminal output, or screenshot description)
+3. [ ] criterion text — BLOCKED: (reason)
+
+### Self-Review
+- Did I modify files not listed in the TASK? No | Yes: (list + justification)
+- Did I refactor or clean up adjacent code? No | Yes: (what and why)
+- Did I add features not in the spec? No | Yes: (what and why)
+~~~
+
+## Rationalization Prevention
+
+{Include this table verbatim in every TASK spec. It reminds Code what
+discipline looks like.}
+
+| If you're thinking... | Stop. The reality is: |
+|-----------------------|-----------------------|
+| "This file needs fixing too" | That's scope creep. Create a VybePM task, don't fix it inline. |
+| "I'll refactor this while I'm here" | Unauthorized cleanup. The TASK spec didn't ask for it. |
+| "The tests pass so it's done" | Tests passing ≠ task complete. Fill in the Completion Evidence. |
+| "This is a trivial change" | Trivial changes break things. Follow the full verification flow. |
+| "I'll add error handling to be safe" | Only add what the spec asks for. YAGNI. |
+| "The adjacent component should match" | Stay in scope. If it should match, that's a new TASK. |
 ```
 
-## Step 4: Review with Angel
+## Step 5: Review with Angel
 
 Before committing, present the TASK spec to Angel for review. Key things to confirm:
 - Is the scope right? (not too broad, not too narrow)
 - Is the Do Not Change list complete?
 - Are the acceptance criteria specific enough?
+- Is the verification tier correct?
 
-## Step 5: Commit and Push
+## Step 6: Commit and Push
 
 After Angel approves (or says to proceed):
 
@@ -138,3 +210,4 @@ git push
 - **Missing context** — Don't assume Code remembers previous conversations. Every TASK must be self-contained.
 - **Implicit Do Not Change** — "Just the button" is not enough. List every file and component that should remain untouched.
 - **No verification step** — Every TASK must include how to verify. If you can't define how to check it, the task isn't ready.
+- **Freeform completion notes** — The Completion Evidence template is mandatory. "Updated the files" is not evidence.
