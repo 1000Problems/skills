@@ -1,14 +1,16 @@
 ---
 name: vybepm-reviewer
 type: scheduled-task
-description: "Automated code reviewer and deployment manager. Discovers all projects, queries LightRAG for architectural context, reviews tasks, commits, pushes, deploys, and marks VybePM tasks complete through the full state machine. Runs 4x/day."
-schedule: "30 8,12,16,20 * * *"
+description: "DEPRECATED — disabled 2026-04-10. Code now commits and pushes directly after task execution. No separate review pass needed."
+schedule: "DISABLED"
+enabled: false
 ---
 
-# VybeGo Reviewer — Dynamic Project Discovery + LightRAG
+# VybeGo Reviewer — DEPRECATED
 
-Automated code reviewer and deployment manager for the 1000Problems portfolio.
-Uses LightRAG knowledge graph for deep architectural context during reviews.
+**This skill is disabled as of 2026-04-10.** Code now reviews its own changes against CLAUDE.md guidelines, commits, and pushes directly after each task. The separate 4x/day automated review cycle is no longer needed.
+
+Previous description: Automated code reviewer and deployment manager for the 1000Problems portfolio. Used LightRAG knowledge graph for deep architectural context during reviews.
 
 ## Credentials
 

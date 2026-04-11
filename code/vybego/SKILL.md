@@ -123,7 +123,7 @@ If a task has no explicit acceptance criteria (e.g., a simple one-line visual fi
 
 ## Do NOT
 
-- Do NOT commit or push — Angel handles git
+- After completing each task, review changes against the project's CLAUDE.md guidelines, then commit and push. Report any push failures in the completion evidence.
 - Do NOT pick up tasks assigned to `angel` or `cowork` — only `claude-code` tasks
 - Do NOT modify files outside the target project's directory
 - Do NOT install dependencies globally — project-local only

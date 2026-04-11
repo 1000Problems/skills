@@ -59,7 +59,7 @@ This applies to every web-facing project: ytcombinator, VybePM-v2, 1000Problems 
 
 ## Git Rules
 
-Do NOT commit or push from any project unless the TASK spec or skill explicitly instructs you to. Angel reviews and handles git himself for most projects.
+After completing work, review your changes against the project's CLAUDE.md guidelines, then commit and push. If a push fails (permissions, conflicts, etc.), log it and continue — report unpushed changes at the end of the session.
 
 ## LightRAG (Deep Memory)
 

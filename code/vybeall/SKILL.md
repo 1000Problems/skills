@@ -194,7 +194,7 @@ If the VybePM Executor API is not yet deployed (returns 404), fall back to readi
 
 ## Do NOT
 
-- Do NOT commit or push — Angel handles git for every project
+- After completing each task, review changes against the project's CLAUDE.md guidelines, then commit and push. Report any push failures in the session summary.
 - Do NOT modify files outside the current project's directory while working on its tasks
 - Do NOT pick up tasks assigned to `angel` or `cowork` — only `claude-code` tasks
 - Do NOT skip the pickup step — it prevents race conditions with other executors
