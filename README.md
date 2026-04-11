@@ -33,6 +33,7 @@ Interactive skills that run in Cowork (desktop app). Triggered by conversation o
 | `1000p-deploy-v2` | Deploy to Vercel: Next.js scaffold, landing page, homepage card, custom domain |
 | `1000p-deploy-azure` | Deploy to Azure App Service (legacy path for older projects) |
 | `daily-report` | Generate the daily portfolio report: commits, tasks, assessment, open items |
+| `whiteboard` | Create and iterate on visual designs in the Whiteboard notebook — HTML pages, episode assets/layouts, SVG mockups. Trigger: "whiteboard this" |
 
 ## Code Skills
 
